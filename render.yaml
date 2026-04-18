@@ -1,0 +1,57 @@
+services:
+  - type: web
+    name: deepshield-backend
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install --omit=dev
+    startCommand: node index.js
+    envVars:
+      - key: NODE_VERSION
+        value: 24.15.0
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: CORS_ORIGINS
+        sync: false
+      - key: FLASK_CNN_URL
+        sync: false
+      - key: FLASK_VIT_URL
+        sync: false
+      - key: FLASK_CNN_TIMEOUT_MS
+        value: 120000
+      - key: FLASK_VIT_TIMEOUT_MS
+        value: 120000
+
+  - type: web
+    name: deepshield-flask-cnn
+    runtime: python
+    rootDir: backend/flask_server
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -k gthread --threads 2 --timeout 300 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_CORS_ORIGINS
+        sync: false
+      - key: FLASK_DEBUG
+        value: "0"
+
+  - type: web
+    name: deepshield-flask-vit
+    runtime: python
+    rootDir: backend/flask_server_2
+    plan: free
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -k gthread --threads 2 --timeout 300 -b 0.0.0.0:$PORT app:app
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: FLASK_CORS_ORIGINS
+        sync: false
+      - key: FLASK_DEBUG
+        value: "0"

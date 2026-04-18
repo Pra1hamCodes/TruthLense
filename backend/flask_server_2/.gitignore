@@ -1,0 +1,7 @@
+backend/flask_server_2/models/
+backend/flask_server_2/*.pth
+backend/flask_server_2/*.pt
+backend/flask_server_2/*.pth.tar
+backend/flask_server_2/*.pt.tar
+backend/flask_server_2/*.pth.tar.gz
+backend/flask_server_2/*.pt.tar.gz
