@@ -77,10 +77,11 @@ backend/data/
 backend/uploads/
 backend/uploads/*
 
+# Flask CNN-LSTM server runtime artifacts
 backend/flask_server/uploads/
-backend/flask_server/uploads/*
 backend/flask_server/frames/
-backend/flask_server/frames/*   
+backend/flask_server/models/_clean_*.h5
+backend/flask_server/models/deepfake_detection_model_clean.h5
 
 backend/flask_server_2/models/*
 !backend/flask_server_2/models/*.pt

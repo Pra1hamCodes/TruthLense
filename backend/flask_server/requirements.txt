@@ -1,8 +1,10 @@
-Flask==3.0.3
-flask-cors==4.0.1
-gunicorn==22.0.0
-Werkzeug==3.0.3
-numpy==1.26.4
-opencv-python-headless==4.10.0.84
-Pillow==10.4.0
-tensorflow-cpu==2.15.1
+flask
+flask-cors
+opencv-python-headless
+numpy
+h5py
+keras>=3.6,<3.10
+# Torch is the Keras 3 backend (TensorFlow's native DLLs are blocked by
+# Windows Smart App Control on the dev host, so we run Keras on torch).
+torch>=2.2
+torchvision

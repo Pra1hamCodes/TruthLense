@@ -5,6 +5,8 @@ import { motion } from "framer-motion";
 import { api } from '../lib/api';
 import { API_BASE_URL } from '../lib/config';
 
+const CURRENT_ANALYSIS_VERSION = 'ensemble-v6';
+
 interface Post {
   id: string;
   title: string;
@@ -30,6 +32,8 @@ interface Post {
     summary?: {
       status: string;
       confidence_percentage: number;
+      analysis_version?: string;
+      video_stability_percentage?: number;
       total_frames: number;
       real_frames: number;
       fake_frames: number;
@@ -128,6 +132,7 @@ export default function Community() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshingIds, setRefreshingIds] = useState<Set<string>>(new Set());
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isMountedRef = useRef(true);
 
@@ -166,6 +171,66 @@ export default function Community() {
     }
     fetchPosts();
   }, []);
+
+  useEffect(() => {
+    const stalePosts = posts.filter((post) => (
+      post.media_type === 'video'
+      && post.analysis_status === 'completed'
+      && post.deepfake_analysis?.summary
+      && post.deepfake_analysis.summary.analysis_version !== CURRENT_ANALYSIS_VERSION
+    ));
+
+    if (stalePosts.length === 0) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    const refreshStalePosts = async () => {
+      for (const stalePost of stalePosts) {
+        if (refreshingIds.has(stalePost.id)) {
+          continue;
+        }
+
+        setRefreshingIds((previous) => new Set(previous).add(stalePost.id));
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/posts/analyze/${stalePost.id}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            continue;
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh stale analysis:', refreshError);
+        } finally {
+          setRefreshingIds((previous) => {
+            const next = new Set(previous);
+            next.delete(stalePost.id);
+            return next;
+          });
+        }
+      }
+
+      try {
+        const data = await api.getPosts();
+        if (isMountedRef.current && Array.isArray(data)) {
+          setPosts(data);
+        }
+      } catch (refreshError) {
+        console.error('Failed to refetch posts after refresh:', refreshError);
+      }
+    };
+
+    refreshStalePosts();
+  }, [posts, refreshingIds]);
 
   useEffect(() => {
     // Only (re)subscribe when a processing post appears; don't tear down on every

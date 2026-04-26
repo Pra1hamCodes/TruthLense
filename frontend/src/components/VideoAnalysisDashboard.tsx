@@ -27,6 +27,13 @@ interface Post {
 
 const API_URL = API_BASE_URL;
 
+const resolveFrameUrl = (framePath: string) => {
+  if (framePath.startsWith('http://') || framePath.startsWith('https://')) {
+    return framePath;
+  }
+  return `${API_URL}${framePath.startsWith('/') ? framePath : `/${framePath}`}`;
+};
+
 export default function VideoAnalysisDashboard() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [selectedPost, setSelectedPost] = useState<Post | null>(null);
@@ -93,19 +100,21 @@ export default function VideoAnalysisDashboard() {
   };
 
   // Add the same helper function
-  const determineVideoStatus = (frames: Frame[]) => {
+  const determineVideoStatus = (analysis?: Post['deepfake_analysis']) => {
+    const frames = analysis?.frames_analysis || [];
     const realFrames = frames.filter(f => !f.is_fake).length;
     const fakeFrames = frames.filter(f => f.is_fake).length;
-    // Calculate average confidence
-    const totalConfidence = frames.reduce((sum, frame) => sum + frame.confidence, 0);
-    const averageConfidence = totalConfidence / frames.length;
+    const summary = analysis && 'summary' in analysis ? (analysis as Post['deepfake_analysis'] & { summary?: { status: string; confidence_percentage: number; total_frames: number; real_frames: number; fake_frames: number } }).summary : undefined;
+    const verdictConfidence = frames.length > 0
+      ? Math.round((Math.max(realFrames, fakeFrames) / frames.length) * 100)
+      : 0;
     
     return {
-      isReal: realFrames >= fakeFrames,
-      realCount: realFrames,
-      fakeCount: fakeFrames,
-      totalFrames: frames.length,
-      confidence: averageConfidence
+      isReal: summary ? summary.status === 'REAL' : realFrames >= fakeFrames,
+      realCount: summary?.real_frames ?? realFrames,
+      fakeCount: summary?.fake_frames ?? fakeFrames,
+      totalFrames: summary?.total_frames ?? frames.length,
+      confidencePercentage: verdictConfidence
     };
   };
 
@@ -149,7 +158,7 @@ export default function VideoAnalysisDashboard() {
               <div className="space-y-4">
                 {/* Status */}
                 {(() => {
-                  const status = determineVideoStatus(post.deepfake_analysis.frames_analysis);
+                  const status = determineVideoStatus(post.deepfake_analysis);
                   return (
                     <div className={`text-lg font-bold ${
                       status.isReal ? 'text-green-600' : 'text-red-600'
@@ -163,7 +172,7 @@ export default function VideoAnalysisDashboard() {
                 {/* Preview first few frames */}
                 <div className="grid grid-cols-3 gap-2">
                   {post.deepfake_analysis.frames_analysis.slice(0, 3).map((frame, index) => {
-                    const imagePath = `${API_URL}${frame.frame_path}`;
+                    const imagePath = resolveFrameUrl(frame.frame_path);
                     const isLoaded = loadedImages.has(imagePath);
 
                     return (
@@ -205,7 +214,7 @@ export default function VideoAnalysisDashboard() {
       <AnimatePresence>
         {showModal && selectedPost?.deepfake_analysis && (
           (() => {
-            const status = determineVideoStatus(selectedPost.deepfake_analysis.frames_analysis);
+            const status = determineVideoStatus(selectedPost.deepfake_analysis);
             return (
           <div className="fixed inset-0 z-50">
             <div className="absolute inset-0 bg-black bg-opacity-50" onClick={handleCloseModal} />
@@ -236,7 +245,7 @@ export default function VideoAnalysisDashboard() {
                         {selectedPost.deepfake_analysis.is_fake ? 'FAKE' : 'REAL'}
                       </div>
                       <div className="text-gray-600">
-                        Overall Confidence: {(status.confidence * 100).toFixed(1)}%
+                        Confidence Score: {status.confidencePercentage}%
                       </div>
                     </div>
                   </div>

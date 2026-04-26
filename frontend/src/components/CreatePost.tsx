@@ -57,7 +57,6 @@ export default function CreatePost() {
       setLoading(true);
       const response = await axios.post(`${API_BASE_URL}/api/posts`, formData, {
         headers: {
-          'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
         }
       });

@@ -4,6 +4,8 @@ import { Heart, MessageCircle, Sparkles } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../lib/config';
 
+const CURRENT_ANALYSIS_VERSION = 'ensemble-v6';
+
 interface Frame {
   frame: string;
   confidence: number;
@@ -28,6 +30,12 @@ interface Post {
     is_fake: boolean;
     confidence: number;
     frames_analysis: Frame[];
+    summary?: {
+      status: string;
+      confidence_percentage: number;
+      analysis_version?: string;
+      video_stability_percentage?: number;
+    };
   };
 }
 
@@ -158,6 +166,70 @@ export default function UserPosts() {
     }
     fetchUserPosts();
   }, [navigate]);
+
+  useEffect(() => {
+    const stalePosts = posts.filter((post) => (
+      post.media_type === 'video'
+      && post.analysis_status === 'completed'
+      && post.deepfake_analysis?.summary
+      && post.deepfake_analysis.summary.analysis_version !== CURRENT_ANALYSIS_VERSION
+    ));
+
+    if (stalePosts.length === 0) {
+      return;
+    }
+
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshStalePosts = async () => {
+      for (const stalePost of stalePosts) {
+        if (cancelled) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE_URL}/api/posts/analyze/${stalePost.id}`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
+
+          if (!response.ok) {
+            continue;
+          }
+        } catch (refreshError) {
+          console.error('Failed to refresh stale user post analysis:', refreshError);
+        }
+      }
+
+      if (!cancelled) {
+        const response = await fetch(`${API_URL}/api/posts/user/posts`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.ok && !cancelled) {
+          const data = await response.json();
+          if (Array.isArray(data)) {
+            setPosts(data);
+          }
+        }
+      }
+    };
+
+    refreshStalePosts();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [posts]);
 
   if (loading) {
     return (

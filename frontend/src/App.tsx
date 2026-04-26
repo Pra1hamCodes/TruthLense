@@ -3,7 +3,6 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import Dashboard from "./pages/Dashboard";
 import Navbar from './components/NavBar';
-import Footer from './components/Footer';
 import CreatePost from './components/CreatePost';
 import PostDetails from './components/PostDetails';
 import Community from './components/Community';
@@ -43,7 +42,6 @@ const App = () => {
             <Route path="/model-evaluation" element={<ModelEvaluation />} />
           </Routes>
         </main>
-        <Footer />
       </div>
     </Router>
   );

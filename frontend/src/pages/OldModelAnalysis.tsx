@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { AlertTriangle, CheckCircle, BarChart2, Film, Percent } from 'lucide-react';
 import axios from 'axios';
-import { API_BASE_URL, FLASK_MAIN_URL } from '../lib/config';
+import { API_BASE_URL } from '../lib/config';
 
 interface Frame {
   frame: string;
@@ -25,8 +25,14 @@ interface Analysis {
   };
 }
 
-const FLASK_URL2 = FLASK_MAIN_URL;
 const API_URL = API_BASE_URL;
+
+const resolveFrameUrl = (framePath: string) => {
+  if (framePath.startsWith('http://') || framePath.startsWith('https://')) {
+    return framePath;
+  }
+  return `${API_URL}${framePath.startsWith('/') ? framePath : `/${framePath}`}`;
+};
 
 export default function OldModelAnalysis() {
   const { postId } = useParams();
@@ -180,9 +186,7 @@ export default function OldModelAnalysis() {
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {analysis.frames_analysis.map((frame, index) => {
-              const imagePath = frame.frame_path.startsWith('http') 
-                ? frame.frame_path 
-                : `${FLASK_URL2}/uploads/frames/${frame.frame_path.replace('/uploads/frames/', '')}`;
+              const imagePath = resolveFrameUrl(frame.frame_path);
               const isLoaded = loadedImages.has(imagePath);
 
               return (
@@ -256,9 +260,7 @@ export default function OldModelAnalysis() {
                     <td className="px-4 py-3">
                       <div className="w-24 h-16 rounded-lg overflow-hidden border-2 border-[#151616]">
                         <img 
-                          src={frame.frame_path.startsWith('http') 
-                            ? frame.frame_path 
-                            : `${FLASK_URL2}/uploads/frames/${frame.frame_path.replace('/uploads/frames/', '')}`}
+                          src={resolveFrameUrl(frame.frame_path)}
                           alt={`Frame ${index + 1}`}
                           className="w-full h-full object-cover"
                         />

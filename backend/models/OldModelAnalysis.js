@@ -23,4 +23,4 @@ const oldModelAnalysisSchema = new mongoose.Schema({
   }
 }, { timestamps: true });
 
-module.exports = mongoose.model('OldModelAnalysis', oldModelAnalysisSchema); 
+module.exports = mongoose.model('OldModelAnalysis', oldModelAnalysisSchema);
